@@ -296,7 +296,7 @@ def apply_search():
 			tmp_df=pd.DataFrame()
 		newwindow = Toplevel()
 		newwindow.title('数据', )
-		newwindow.geometry('640x480')
+		newwindow.geometry('640x640')
 		tree_date = ttk.Treeview(newwindow, height=30)
 		# 定义列
 		tree_date['columns'] = list(tmp_df.columns)

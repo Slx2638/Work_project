@@ -27,20 +27,22 @@ SCORES = []
 CHANGE = []
 food_array = np.array(food_list)
 #z-score
-df = preprocessing.scale(food_array)
-# print(df)
-X = range(2,45)
+df = pd.DataFrame(food_array)
+df_new = df.loc[:,22:22]
+df_scale = preprocessing.scale(df_new)
+print(df_scale)
+X = range(2,40)
 for k in X:
     estimator = KMeans(n_clusters=k)
-    estimator.fit(df)
+    estimator.fit(df_scale)
     SSE.append(estimator.inertia_)
-    SCORES.append(silhouette_score(df,estimator.labels_,metric='euclidean'))
-    CHANGE.append(
-        sum(
-            np.min(
-                cdist(df, estimator.cluster_centers_, metric='euclidean'), axis=1)
-            / df.shape[0])
-    )
+    SCORES.append(silhouette_score(df_scale,estimator.labels_,metric='euclidean'))
+    # CHANGE.append(
+    #     #     sum(
+    #     #         np.min(
+    #     #             cdist(df, estimator.cluster_centers_, metric='euclidean'), axis=1)
+    #     #         / df.shape[0])
+    #     # )
 
 
 plt.xlabel("k")
@@ -50,9 +52,9 @@ plt.plot(X,SSE,'bx-')
 plt.figure(2)
 plt.ylabel('轮廓系数')
 plt.plot(X,SCORES,'bx-')
-plt.figure(3)
-plt.ylabel("平均畸变程度")
-plt.plot(X,CHANGE,'bx-')
+# plt.figure(3)
+# plt.ylabel("平均畸变程度")
+# plt.plot(X,CHANGE,'bx-')
 plt.show()
 
 # kmodel = KMeans(n_clusters=37, n_jobs=6)
