@@ -28,7 +28,7 @@ CHANGE = []
 food_array = np.array(food_list)
 #z-score
 df = pd.DataFrame(food_array)
-df_new = df.loc[:,22:22]
+df_new = df.loc[:,0:5]
 df_scale = preprocessing.scale(df_new)
 print(df_scale)
 X = range(2,40)

@@ -79,9 +79,11 @@ def spy():
 	data.to_csv('food_data.csv', encoding='utf-8')
 
 def f_search():
+	import pandas as pd
 	import csv
 	import re
 	import wx
+	import matplotlib.pyplot as plt
 	from pylab import mpl
 	from matplotlib.font_manager import _rebuild
 	#中文
@@ -96,6 +98,9 @@ def f_search():
 	foodname_text = wx.TextCtrl(frame, pos=(5, 260), size=(400, 24))
 	show_button = wx.Button(frame, label="查看食物营养元素", pos=(440, 260), size=(130, 24))
 
+	foodname2_text = wx.TextCtrl(frame, pos=(5, 290), size=(400, 24))
+	compare_button = wx.Button(frame, label="两种食物营养素比较", pos=(430, 290), size=(140, 24))
+
 	food_data = []
 	food_file = 'food_data.csv'
 	with open(food_file, encoding='utf-8') as csvfile:
@@ -105,6 +110,7 @@ def f_search():
 			food_data.append(row)
 
 	food_data = np.array(food_data)
+
 	#模糊搜索
 	def search_food(evevt):
 		i = 0
@@ -134,12 +140,12 @@ def f_search():
 			return str
 
 		content_text.SetValue(str(show_list(index_content)))
-	#具体数据
-	def show_food(evevt):
+
+	def find(name):
 		i = 0
 		index_list = []
 		food_list = []
-		search_content = foodname_text.GetValue()
+		search_content = name
 		while (i < food_data.shape[0]):
 			if search_content == str(food_data[i][0]):
 				index_list.append(i)
@@ -160,23 +166,42 @@ def f_search():
 		food_df = food_df.T
 		food_df.columns = index_content
 		food_df = food_df.drop(['食物名称(100g)'])
-		nutrition_list = food_df.index.tolist()
+		# nutrition_list = food_df.index.tolist()
 		food_df = food_df[index_content[0]].astype(int)
+		return food_df
+
+	#具体数据
+	def show_food(evevt):
+		search_content = foodname_text.GetValue()
+		food_df = find(search_content)
+		nutrition_list = food_df.index.tolist()
+
 		food_dict = food_df.tolist()
 		food_dict = [int(item) for item in food_dict]
-
 		f_a = np.arange(len(nutrition_list))
+
 		for i in range(len(food_dict)):
 			plt.text(food_dict[i] + 10, f_a[i], food_dict[i], ha='center', va='bottom', fontsize=11)
 
-		plt.title(index_content[0])
+		plt.title(search_content)
 		plt.xlabel('含量/100g')
 		plt.ylabel('营养元素种类')
 		food_df.plot(kind='barh')
 
+	def food_compare(event):
+		food1 = foodname_text.GetValue()
+		food2 = foodname2_text.GetValue()
+		food_df1 = find(food1)
+		food_df2 = find(food2)
+		df = pd.DataFrame([food_df1,food_df2])
+		plt.title(food1+'和'+food2)
+		plt.xlabel('含量/100g')
+		plt.ylabel('营养元素种类')
+		df.T.plot(kind='barh')
+
 	search_button.Bind(wx.EVT_BUTTON, search_food)
 	show_button.Bind(wx.EVT_BUTTON, show_food)
-
+	compare_button.Bind(wx.EVT_BUTTON, food_compare)
 	pd.set_option('display.unicode.ambiguous_as_wide', True)
 	pd.set_option('display.unicode.east_asian_width', True)
 	pd.set_option('display.max_columns', None)
@@ -247,10 +272,12 @@ flag_24 = False
 def clust_pre():
 	top = Toplevel()
 	top.title("聚类准备")
-	top.geometry("700x400")
+	top.geometry("700x450")
 
+	# 营养素列名集合
 	global list_content
 	list_content = []
+
 	nutrient_list = ['热量(kcal)', '硫胺素(mg)', '钙(mg)',
 					 '蛋白质(g)', '核黄素(mg)', '镁(mg)',
 					 '脂肪(g)', '烟酸(mg)', '铁(mg)',
@@ -259,17 +286,31 @@ def clust_pre():
 					 '维生素A(ug)', '胆固醇(mg)', '铜(mg)',
 					 '胡萝卜素(ug)', '钾(mg)', '磷(mg)',
 					 '视黄醇当量(ug)', '钠(mg)', '硒(mg)', ]
+	Label(top, text="聚类开始和结束位置").grid(row=0,column=0)
+	var_s = StringVar()
+	var_e = StringVar()
+	s = Entry(top, textvariable = var_s, width=10)
+	s.grid(row=1,column=0)
+	e = Entry(top, textvariable = var_e, width=10)
+	e.grid(row=2,column=0)
 
-	lab = ttk.Label(top, text='请选择需要的营养元素：')
-	lab.grid(row=0, columnspan=3)
+	global start
+	global end
+
+	def comfirm_area():
+		global df
+		df = pd.read_csv(filename, encoding='utf-8')
+		start = s.get()
+		end = e.get()
+		df = df.loc[int(start):int(end), :]
+		return df
+	Button(top, text='确定', width=10, command=comfirm_area).grid(row=2, column=1, padx=1, pady=1)
+	Label(top, text='请选择需要的营养元素：').grid(row=3, columnspan=3)
 	Button(top, text='画图确定k值', width=15, command=draw).grid(row=6, column=0, padx=1, pady=1)
 	Label(top, text='输入k值', width=15).grid(column=0, row=7)
 	var = StringVar()
 	k_var = Entry(top, textvariable = var)
 	k_var.grid(column=0, row=8)
-
-	global df
-	df = pd.read_csv(filename, encoding='utf-8')
 
 	def click_1():
 		global flag_1
@@ -560,7 +601,6 @@ def clust_pre():
 		df1 = df1.loc[:, list_content]
 		data = scale(df1)
 
-
 		# 多选框
 	frm = ttk.Frame(top)
 	ttk.Checkbutton(frm, text='热量(kcal)', command=click_1).grid(row=0)
@@ -596,8 +636,8 @@ def clust_pre():
 		km.fit(data)
 		# centers = km.cluster_centers_  #聚类中心
 		labels = km.labels_
-		df['label'] = labels
-		df.to_csv('clu_result_c.csv', index=False)
+		df['label']= labels
+		df.to_csv('clu_result_c_1.csv',index=False)
 		return df
 
 	Button(top, text='聚类', width=15, command=clust).grid(row=10, column=0, padx=1, pady=1)
@@ -621,6 +661,7 @@ def show_result():
 		print('class:',number)
 
 		tmp_df = df.loc[df.label == int(n),]
+		# print(tmp_df)
 		newwindow = Toplevel()
 		newwindow.title('数据', )
 		# 创建表格
@@ -665,7 +706,7 @@ def apply_search():
 			if len(col)>0:
 				col=col[0]
 			tmp_df = df[df[col]>0].sort_values(by=col,ascending=False)#筛选
-
+			# print(tmp_df)
 			cols = [df.columns[0],col]
 			tmp_df = tmp_df[cols]
 			tmp_df = tmp_df.reset_index(drop=True)

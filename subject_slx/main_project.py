@@ -100,6 +100,9 @@ def f_search():
 	foodname_text = wx.TextCtrl(frame, pos=(5, 260), size=(400, 24))
 	show_button = wx.Button(frame, label="查看食物营养元素", pos=(440, 260), size=(130, 24))
 
+	foodname2_text = wx.TextCtrl(frame, pos=(5, 290), size=(400, 24))
+	compare_button = wx.Button(frame, label="两种食物营养素比较", pos=(430, 290), size=(140, 24))
+
 	food_data = []
 	food_file = 'food_data.csv'
 	with open(food_file, encoding='utf-8') as csvfile:
@@ -109,6 +112,7 @@ def f_search():
 			food_data.append(row)
 
 	food_data = np.array(food_data)
+
 	#模糊搜索
 	def search_food(evevt):
 		i = 0
@@ -138,12 +142,12 @@ def f_search():
 			return str
 
 		content_text.SetValue(str(show_list(index_content)))
-	#具体数据
-	def show_food(evevt):
+
+	def find(name):
 		i = 0
 		index_list = []
 		food_list = []
-		search_content = foodname_text.GetValue()
+		search_content = name
 		while (i < food_data.shape[0]):
 			if search_content == str(food_data[i][0]):
 				index_list.append(i)
@@ -164,22 +168,46 @@ def f_search():
 		food_df = food_df.T
 		food_df.columns = index_content
 		food_df = food_df.drop(['食物名称(100g)'])
-		nutrition_list = food_df.index.tolist()
+		# nutrition_list = food_df.index.tolist()
 		food_df = food_df[index_content[0]].astype(int)
+		return food_df
+
+	#具体数据
+	def show_food(evevt):
+		search_content = foodname_text.GetValue()
+		food_df = find(search_content)
+		nutrition_list = food_df.index.tolist()
+
 		food_dict = food_df.tolist()
 		food_dict = [int(item) for item in food_dict]
-
 		f_a = np.arange(len(nutrition_list))
+
 		for i in range(len(food_dict)):
 			plt.text(food_dict[i] + 10, f_a[i], food_dict[i], ha='center', va='bottom', fontsize=11)
 
-		plt.title(index_content[0])
+		plt.title(search_content)
 		plt.xlabel('含量/100g')
 		plt.ylabel('营养元素种类')
 		food_df.plot(kind='barh')
 
+
+	def food_compare(event):
+		food1 = foodname_text.GetValue()
+		food2 = foodname2_text.GetValue()
+		food_df1 = find(food1)
+		food_df2 = find(food2)
+		df = pd.DataFrame([food_df1,food_df2])
+		plt.title(food1+'和'+food2)
+		plt.xlabel('含量/100g')
+		plt.ylabel('营养元素种类')
+		df.T.plot(kind='barh')
+
+
+
+
 	search_button.Bind(wx.EVT_BUTTON, search_food)
 	show_button.Bind(wx.EVT_BUTTON, show_food)
+	compare_button.Bind(wx.EVT_BUTTON, food_compare)
 
 	pd.set_option('display.unicode.ambiguous_as_wide', True)
 	pd.set_option('display.unicode.east_asian_width', True)
@@ -285,10 +313,10 @@ def apply_search():
 		nutrient = search_text.get()
 		try:
 			col=[c for c in df.columns if nutrient in c]
+			print(col)
 			if len(col)>0:
 				col=col[0]
 			tmp_df = df[df[col]>0].sort_values(by=col,ascending=False)#筛选
-
 			cols = [df.columns[0],col]
 			tmp_df = tmp_df[cols]
 			tmp_df = tmp_df.reset_index(drop=True)
